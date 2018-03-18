@@ -111,6 +111,15 @@ int main()
 /*exit I*/
 int xsshexit(char buffer[BUFLEN])
 {
+	if (buffer == "exit I") {
+		return atoi(buffer->values["I"]);	
+	}
+	if (buffer == "exit") {
+		return 0;
+	}else {
+		return -1;
+	}
+	
 	//FIXME: exit with a return value I that is stored in buffer
 	//hint: where is the start of the string of return value I?
 	printf("Replace me with code for exit I\n");
