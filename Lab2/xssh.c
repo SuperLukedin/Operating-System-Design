@@ -57,7 +57,7 @@ int main()
 	/*run the xssh, read the input instrcution*/
 	int xsshprint = 0;
 	if(isatty(fileno(stdin))) xsshprint = 1;
-	if(xsshprint) printf("xssh>> ");
+	if(xsshprint) printf("xssh>> ");  /* prompt */
 	char buffer[BUFLEN];
 	while(fgets(buffer, BUFLEN, stdin) > 0)
 	{
@@ -88,7 +88,7 @@ int main()
 			team(buffer);
 		else if(ins == 9)
 			continue;
-		else
+		else  /* code needed for pipeprog() */
 		{
 			char *ptr = strchr(buffer, '|');
 			if(ptr != NULL)
@@ -102,8 +102,8 @@ int main()
 				if(err != 0)break;
 			}
 		}
-		if(xsshprint) printf("xssh>> ");
-		memset(buffer, 0, BUFLEN);
+		if(xsshprint) printf("xssh>> ");  /* prompt in while loop */
+		memset(buffer, 0, BUFLEN); /* clean and reset buffer = 000000... */
 	}
 	return -1;
 }
@@ -175,7 +175,7 @@ void waitchild(char buffer[BUFLEN])
 	int start = 5;
 
 	/*store the childpid in pid*/
-	char number[BUFLEN] = {'\0'};
+	char number[BUFLEN] = {'\0'}; 
 	while(buffer[start]==' ')start++;
 	for(i = start; (i < strlen(buffer))&&(buffer[i]!='\n')&&(buffer[i]!='#'); i++)
 	{
@@ -244,12 +244,12 @@ int pipeprog(char buffer[BUFLEN])
 /*substitute the variable with its value*/
 void substitute(char *buffer)
 {
-	char newbuf[BUFLEN] = {'\0'};
+	char newbuf[BUFLEN] = {'\0'}; /* '\0' is the null-terminator */
 	int i;
-	int pos = 0;
+	int pos = 0; /* pos is pointer of newbuf */
 	for(i = 0; i < strlen(buffer);i++)
 	{
-		if(buffer[i]=='#')
+		if(buffer[i]=='#') /* replace '#' with '\n', then skip = NOT parsing the rest of the string */
 		{
 			newbuf[pos]='\n';
 			pos++;
@@ -259,18 +259,18 @@ void substitute(char *buffer)
 		{
 			if((buffer[i+1]!='#')&&(buffer[i+1]!=' ')&&(buffer[i+1]!='\n'))
 			{
-				i++;
-				int count = 0;
+				i++; 
+				int count = 0; /* count is index of tmp */
 				char tmp[BUFLEN];
-				for(; (buffer[i]!='#')&&(buffer[i]!='\n')&&(buffer[i]!=' '); i++)
+				for(; (buffer[i]!='#')&&(buffer[i]!='\n')&&(buffer[i]!=' '); i++)  /* loop pointer i from i+1 to end of $(VARNAME)\0 */
 				{
 					tmp[count] = buffer[i];
 					count++;
-				}
-				tmp[count] = '\0';
+				} /* copy the $(VARNAME) into tmp, move pointer i to end of $VARNAME, move pointer i to end of $(VARNAME) */
+				tmp[count] = '\0'; 
 				int flag = 0;
         			int j;
-				for(j = 0; j < varmax; j++)
+				for(j = 0; j < varmax; j++) /* looking for parsed tmp = 'VARNAME' in global var. list varname */
         			{
                 			if(strcmp(tmp,varname[j]) == 0)
 					{
@@ -278,37 +278,37 @@ void substitute(char *buffer)
 						break;
                 			}
         			}
-        			if(flag == 0)
+        			if(flag == 0) /* if not found in var. list, prompt */
         			{
 					printf("-xssh: Does not exist variable $%s.\n", tmp);
         			}
-        			else
+        			else /* if found in var. list, strcat() append varvalue[j] = the found var. to &newbuf[pos], move pointer pos to end of newbuf */
 				{
 					strcat(&newbuf[pos], varvalue[j]);
 					pos = strlen(newbuf);
         			}
-				i--;
+				i--; /* shift pointer back 1 position, pairing with the 'i++' at the beginning of the loop */
 			}
-			else
+			else /* if buffer[i+1] is '#', space or newline, copy paste the '$' to newbuf */
 			{
 				newbuf[pos] = buffer[i];
 				pos++;
 			}
 		}
-		else
+		else /* copy paste the current character to newbuf */
 		{
 			newbuf[pos] = buffer[i];
 			pos++;
 		}
 	}
-	if(newbuf[pos-1]!='\n')
+	if(newbuf[pos-1]!='\n') /* ??? */
 	{
 		newbuf[pos]='\n';
 		pos++;
 	}
 	newbuf[pos] = '\0';
-	strcpy(buffer, newbuf);
-	//printf("Decode: %s", buffer);
+	strcpy(buffer, newbuf); /* copy the value in newbuf back to buffer */
+	printf("Decoded: %s", buffer); /* TODO: COMMENT THIS LINE BEFORE SUBMISSION */
 }
 
 /*decode the instruction*/
@@ -316,7 +316,7 @@ int deinstr(char buffer[BUFLEN])
 {
 	int i;
 	int flag = 0;
-	for(i = 0; i < INSNUM; i++)
+	for(i = 0; i < INSNUM; i++) /* INSNUM = 8; char *instr[INSNUM] = {"show","show","show","show","chdir","exit","wait","team"}; */
 	{
 		flag = 0;
 		int j;
@@ -324,8 +324,8 @@ int deinstr(char buffer[BUFLEN])
 		int len = strlen(buffer);
 		int count = 0;
 		j = 0;
-		while(buffer[count]==' ')count++;
-		if((buffer[count]=='\n')||(buffer[count]=='#'))
+		while(buffer[count]==' ')count++; /* skip all space(s) before command */
+		if((buffer[count]=='\n')||(buffer[count]=='#')) /* if command is newline, or command is comment, then set flag = 0, i = 8 */
 		{
 			flag = 0;
 			i = INSNUM;
@@ -335,30 +335,31 @@ int deinstr(char buffer[BUFLEN])
 		{
 			if(instr[i][j] != buffer[j])
 			{
-				flag = 1;
+				flag = 1; /* deinstr() will return ins = 0, main() will execute nothing */
 				break;
 			}
 		}
-		if((flag == 0) && (j == stdlen) && (j <= len) && (buffer[j] == ' '))
+		if((flag == 0) && (j == stdlen) && (j <= len) && (buffer[j] == ' ')) /* jump out of for loop with flag = 0 if next char at buffer is space */
 		{
 			break;
 		}
-		else if((flag == 0) && (j == stdlen) && (j <= len) && (i == 5))
+		else if((flag == 0) && (j == stdlen) && (j <= len) && (i == 5)) /* jump out of for loop with flag = 0 if command is exit command AND there are additional char's following 'exit' */
 		{
 			break;
 		}
-		else if((flag == 0) && (j == stdlen) && (j <= len) && (i == 7))
+		else if((flag == 0) && (j == stdlen) && (j <= len) && (i == 7)) /* jump out of for loop with flag = 0 if command is team command AND there are additional char's following 'exit' */
 		{
 			break;
 		}
 		else
 		{
-			flag = 1;
+			flag = 1; /* deinstr() will return ins = 0, main() will execute nothing */
 		}
-	}
+	} /* end for loop */
+
 	if(flag == 1)
 	{
-		i = 0;
+		i = 0; /* deinstr() will return ins = 0, main() will execute nothing */
 	}
 	else
 	{
