@@ -105,6 +105,7 @@ int main()
 			{
 				int err = program(buffer);
 				if(err != 0)break;
+				return 0; // TODO delete this line before submission.
 			}
 		}
 		if(xsshprint) printf("xssh>> ");  /* prompt in while loop */
@@ -127,7 +128,7 @@ int xsshexit(char buffer[BUFLEN])
 		argI[j] = buffer[i];
 		j++;
 	}
-	printf("argI is %s \n", argI);
+	// printf("argI is %s \n", argI);
 	// printf("argI int is %s \n", atoi(argI));
 	
 	if (strlen(buffer) == 5){
@@ -175,7 +176,7 @@ void show(char buffer[BUFLEN])
 /*team T*/
 void team(char buffer[BUFLEN])
 {
-	printf("Team members: %s; %s; %s\n", "Yinxia Li", "Liansai Dong","Yuchen Peng");
+	printf("Team members: %s; %s; %s\n", "Yinxia Li", "Liansai Dong", "Yuchen Peng");
 	//FIXED
 }
 
@@ -193,10 +194,8 @@ void changedir(char buffer[BUFLEN])
                 rootdir[i-start] = buffer[i];
         }
         rootdir[i-start] = '\0';
-
 	//FIXME: changes the current working directory of xssh to the directory specified in rootdir and print "-xssh: change to dir 'rootdir'\n"
 	//FIXME: if rootdir does not exist, print an error message "-xssh: chdir: Directory 'D' does not exist"
-	printf("Replace me for chdir D\n");
 }
 
 /*ctrl+C handler*/
