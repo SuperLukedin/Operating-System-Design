@@ -116,8 +116,7 @@ int main()
 /*exit I*/
 int xsshexit(char buffer[BUFLEN])
 {
-	/* strncpy(argI, buffer[5], BUFLEN - 5) */
-	int i;
+	int i; /* pointer for buffer[5] - buffer[strlen(buffer)] */
 	char argI[strlen(buffer)-5]; /* create an argument argI with length of 5-less than buffer string */
 	int flag = 0; /* if argI is valid, set flag to 1 */
 	int j = 0; /* j is pointer of argI */
@@ -164,16 +163,20 @@ int xsshexit(char buffer[BUFLEN])
 /*show W*/
 void show(char buffer[BUFLEN])
 {
-	//FIXME: print the string after "show " in buffer
-	//hint: where is the start of this string?
-	printf("Replace me with code for show W\n");
+	int len = strlen(buffer);
+	int i;
+	for (i = 5; i < len; i++) {
+		printf("%c", buffer[i]);
+	}
+	printf("\n");
+	//FIXED
 }
 
 /*team T*/
 void team(char buffer[BUFLEN])
 {
-	//FIXME: print the members of your team in the format "team members: xxx; yyy; zzz" in one line
-	printf("Replace me to print your team members\n");
+	printf("Team members: %s; %s; %s\n", "Yinxia Li", "Liansai Dong","Yuchen Peng");
+	//FIXED
 }
 
 /*chdir D*/
