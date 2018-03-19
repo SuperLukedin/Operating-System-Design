@@ -56,6 +56,7 @@ int main()
 	}
 	/*run the xssh, read the input instrcution*/
 	int xsshprint = 0;
+	int value = 0; /* TODO added declaration */
 	if(isatty(fileno(stdin))) xsshprint = 1;
 	if(xsshprint) printf("xssh>> ");  /* prompt */
 	char buffer[BUFLEN];
@@ -81,7 +82,11 @@ int main()
 		else if(ins == 5)
 			changedir(buffer);
 		else if(ins == 6)
-			return xsshexit(buffer);
+		{
+			value = xsshexit(buffer);
+			printf("xsshexit returned value: %d \n", value);
+		}
+			/* TODO use this before assignment:  return xsshexit(buffer); */
 		else if(ins == 7)
 			waitchild(buffer);
 		else if(ins == 8)
@@ -111,16 +116,51 @@ int main()
 /*exit I*/
 int xsshexit(char buffer[BUFLEN])
 {
-	if (buffer == "exit I") {
-		exit("I");
-	}else if (buffer == "exit") {
-		exit(0);
-	}else {
-		exit(-1);
+	/* strncpy(argI, buffer[5], BUFLEN - 5) */
+	int i;
+	char argI[strlen(buffer)-5]; /* create an argument argI with length of 5-less than buffer string */
+	int flag = 0; /* if argI is valid, set flag to 1 */
+	int j = 0; /* j is pointer of argI */
+	int space = 0;
+
+	for(i = 5; (buffer[i]!='\n')&&(buffer[i]!=' '&&(i<BUFLEN))&&(buffer[i]!='\0'); i++)  /* loop pointer i from i+1 to end of $(VARNAME)\0 */
+	{
+		argI[j] = buffer[i];
+		j++;
 	}
-	//FIXME: exit with a return value I that is stored in buffer
-	//hint: where is the start of the string of return value I?
-	printf("Replace me with code for exit I\n");
+	printf("argI is %s \n", argI);
+	// printf("argI int is %s \n", atoi(argI));
+	
+	if (strlen(buffer) == 5){
+		return 999;
+	}
+	
+	for(j = 0; j < strlen(argI); j++)
+	{
+			printf("evaluating: <%c> \n", argI[j]);
+		if (argI[j] == ' ')
+		{
+			space++;
+			printf("space detected");
+			continue;
+		}
+
+
+		if ( (argI[j] < '0') || (argI[j] > '9') )
+		{
+			flag = 0;
+			break;	
+		} else {
+			flag = 1;
+		}
+	}
+
+	if (flag == 1) {
+		return atoi(argI);
+	} else {
+		return -1;
+	}
+	/* FIXED */
 }
 
 /*show W*/
@@ -346,7 +386,7 @@ int deinstr(char buffer[BUFLEN])
 		{
 			break;
 		}
-		else if((flag == 0) && (j == stdlen) && (j <= len) && (i == 7)) /* jump out of for loop with flag = 0 if command is team command AND there are additional char's following 'exit' */
+		else if((flag == 0) && (j == stdlen) && (j <= len) && (i == 7)) /* jump out of for loop with flag = 0 if command is team command AND there are additional char's following 'team' */
 		{
 			break;
 		}
@@ -366,14 +406,5 @@ int deinstr(char buffer[BUFLEN])
 	}
 	return i;
 }
-
-
-
-
-
-
-
-
-
 
 
