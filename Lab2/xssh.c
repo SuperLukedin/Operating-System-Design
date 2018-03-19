@@ -132,20 +132,18 @@ int xsshexit(char buffer[BUFLEN])
 	// printf("argI int is %s \n", atoi(argI));
 	
 	if (strlen(buffer) == 5){
-		return 999;
+		return 0;
 	}
 	
 	for(j = 0; j < strlen(argI); j++)
 	{
-			printf("evaluating: <%c> \n", argI[j]);
+		/*	printf("evaluating: <%c> \n", argI[j]); // handling spaces
 		if (argI[j] == ' ')
 		{
 			space++;
 			printf("space detected");
 			continue;
-		}
-
-
+		} */
 		if ( (argI[j] < '0') || (argI[j] > '9') )
 		{
 			flag = 0;
