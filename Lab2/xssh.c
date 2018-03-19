@@ -105,6 +105,7 @@ int main()
 			{
 				int err = program(buffer);
 				if(err != 0)break;
+				return 0; //TO DO 
 			}
 		}
 		if(xsshprint) printf("xssh>> ");  /* prompt in while loop */
@@ -188,15 +189,24 @@ void changedir(char buffer[BUFLEN])
 	while(buffer[start]==' ')start++;
 
 	/*store the directory in rootdir*/
+	char temp[BUFLEN];
+	strcpy(temp, rootdir);
         for(i = start; (i < strlen(buffer)&&(buffer[i]!='\n')&&(buffer[i]!='#')); i++)
         {
                 rootdir[i-start] = buffer[i];
         }
         rootdir[i-start] = '\0';
 
+	struct stat sb;
+	if (stat(rootdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+		printf("-xssh: change to dir %s\n", rootdir);
+	} else {
+		printf("-xssh: chdir: Directory %s does not exist\n", rootdir);
+		strcpy(rootdir, temp);
+	}
+
 	//FIXME: changes the current working directory of xssh to the directory specified in rootdir and print "-xssh: change to dir 'rootdir'\n"
 	//FIXME: if rootdir does not exist, print an error message "-xssh: chdir: Directory 'D' does not exist"
-	printf("Replace me for chdir D\n");
 }
 
 /*ctrl+C handler*/
