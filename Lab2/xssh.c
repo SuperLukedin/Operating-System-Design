@@ -111,14 +111,6 @@ int main()
 /*exit I*/
 int xsshexit(char buffer[BUFLEN])
 {
-	int I = atoi(buffer[5]);
-	if (I != NULL) {
-		return I;
-	}else if(I == NULL) {
-		return 0;
-	}else {
-		return -1;
-	}
 	//FIXME: exit with a return value I that is stored in buffer
 	//hint: where is the start of the string of return value I?
 	printf("Replace me with code for exit I\n");
@@ -127,6 +119,13 @@ int xsshexit(char buffer[BUFLEN])
 /*show W*/
 void show(char buffer[BUFLEN])
 {
+	int len = strlen(buffer);
+	int i;
+	for (i = 5; i < len; i++) {
+		printf("%c", buffer[i]);
+	}
+	printf("\n");
+	
 	//FIXME: print the string after "show " in buffer
 	//hint: where is the start of this string?
 	printf("Replace me with code for show W\n");
@@ -136,7 +135,7 @@ void show(char buffer[BUFLEN])
 void team(char buffer[BUFLEN])
 {
 	//FIXME: print the members of your team in the format "team members: xxx; yyy; zzz" in one line
-	printf("Team members: %s; %s; %s", "Yinxia Li", "Liansai Dong","Yuchen Peng");
+	printf("Team members: %s; %s; %s\n", "Yinxia Li", "Liansai Dong","Yuchen Peng");
 }
 
 /*chdir D*/
