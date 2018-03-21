@@ -28,6 +28,7 @@ char rootdir[BUFLEN] = "\0";
 /*functions for parsing the commands*/
 int deinstr(char buffer[BUFLEN]);
 void substitute(char *buffer);
+void parser(char* argument, char** argv); // TODO: added helper function
 
 /*functions to be completed*/
 int xsshexit(char buffer[BUFLEN]);
@@ -246,12 +247,13 @@ void waitchild(char buffer[BUFLEN])
 			printf("-xssh: wait %d background processes: \n\n", childnum);
 		}
 		//hint: remember to set the childnum correctly after waiting (??)
+		// Q : when the waitpid() returns, is the child process continued or terminated?
 	}
 	else printf("-xssh: wait: Invalid pid\n");
 }
 
 /*execute the external command*/
-int program(char buffer[BUFLEN])
+int program(char *buffer)
 {
 	/*if backflag == 0, xssh need to wait for the external command to complete*/
 	/*if backflag == 1, xssh need to execute the external command in the background*/
@@ -259,25 +261,44 @@ int program(char buffer[BUFLEN])
 	char *ptr = strchr(buffer, '&');
 	if(ptr != NULL) backflag = 1;
 
+	// parse the command from the buffer
+	char **argv;
+	argv = (char**)malloc(sizeof(char*)*BUFLEN);	
+	parser(buffer, argv);
+	
+	printf("parsed argv (command): %s \n", *argv);	
+
 	pid_t pid;
-	//FIXME: create a new process for executing the external command
-
-	//FIXME: remember to check if the process creation is successful or not. if not, print error message and return -2, see codes below;
-
-
-	//FIXME: write the code to execute the external command in the newly created process, using execvp()
+	pid = fork(); // FIXED: create a new process
+	if (pid < 0) // FIXED: check if the process creation is successful
+		printf("xssh: failed to fork-create process.");
+	else if (pid == 0) { // FIXED: child process, execute the external command
+		if (execvp(*argv, argv) == -1) // FIXED: check if the external command is executed successfully
+		{
+			printf("xssh: Unable to execute the instruction: %s. \n", *argv);
+			return -1;
+		}
 	//hint: the external command is stored in buffer, but before execute it you may need to do some basic validation check or minor changes, depending on how you execute
-	//FIXME: remember to check if the external command is executed successfully; if not, print error message "-xssh: Unable to execute the instruction buffer", where buffer is replaced with the actual external command to be printed
-	//hint: after executing the extenal command using execvp(), you need to return -1;
-	/*for extra credit, implement stdin/stdout redirection in here*/
+	} else { // parent process, pid > 0
+		if (backflag == 1) // FIXED: act differently based on backflag
+		{
+			printf("process running in background. \n");
+			childnum++;
+			// continue; // ???
+		}
+		else
+		{
+			printf("process running in foreground. \n");
+			waitpid(pid, NULL, 0);
+		}
+	}
 
-	printf("Replace me for executing external commands\n");
+	/* TODO for extra credit, implement stdin/stdout redirection in here*/
 
-	//FIXME: in the xssh process, remember to act differently, based on whether backflag is 0 or 1
-	//hint: the codes below are necessary to support command "wait -1", but you need to put them in the current place
+	//hint: the codes below are necessary to support command "wait -1" */
 		childnum++;
 			childnum--; //this may or may not be needed, depending on where you put the previous line
-	//hint: the code below is necessary to support command "show $!", but you need to put it in the current place
+	//hint: the code below is necessary to support command "show $!", but you need to put it in the correct place
 			sprintf(varvalue[2], "%d\0", pid);
 			return 0;
 }
@@ -417,4 +438,32 @@ int deinstr(char buffer[BUFLEN])
 	return i;
 }
 
+void parser(char* argument, char** argv)
+{
+	// remove the '&' before parse argument	
+	printf("argument (buffer) is %s", argument);
+	/*
+	int i,k;
+	char newbuf[BUFLEN];
+	for(i = 0; argument[i] != '\0'; i++)
+	{
+		if (argument[i] == '&')continue;
+		newbuf[k] = argument[i];
+		k++;
+	}
+	newbuf[k] = '\0';
+	*/
 
+	int j = 0;
+	
+	// tokenize the arguments
+	char* token;
+	token = strtok(argument, " ,.\n");
+	while (token != NULL){
+		argv[j] = token;
+		token = strtok(NULL, " ,&\n");
+		printf("argv[j] is %s. \n", argv[j]);
+		j++;
+	}
+argv[j] = NULL;
+}
