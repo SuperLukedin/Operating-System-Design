@@ -206,7 +206,7 @@ void changedir(char buffer[BUFLEN])
 /*ctrl+C handler*/
 void ctrlsig(int sig)
 {
-	if (childpid != rootpid)
+	if (childpid != rootpid && sig == SIGINT)
 	{
 		kill(childpid, SIGKILL);
 		printf("-xssh: Exit pid: %ld \n", childpid);
