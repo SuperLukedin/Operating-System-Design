@@ -231,13 +231,13 @@ void waitchild(char buffer[BUFLEN])
 	/*simple check to see if the input is valid or not*/
 	if((*number != '\0')&&(*endptr == '\0'))
 	{
-		if (pid != -1) {
- 			printf("%s\n%s\n%s\n", 
-			"try to wait the background process pid...", 
-			"......",
-			"-xssh: Unsuccessfully wait the background process pid.");
+		if (pid != -1 && pid > 0) {
+ 			printf("%s%2d\n\n", "-xssh: Have finished waiting process pid: ", pid); 
 		} else if (pid == -1){
-			printf("-xssh: wait childnum background processes: %d\n", childnum);
+			printf("-xssh: wait childnum background processes: %d\n\n", childnum);
+		} else {
+			printf("-xssh: Unsuccessfully wait the background process pid.\n\n");
+		}
 		
 		//FIXME: if pid is not -1, try to wait the background process pid
 		//FIXME: if successful, print "-xssh: Have finished waiting process pid", where pid is the pid of the background process
@@ -245,8 +245,7 @@ void waitchild(char buffer[BUFLEN])
 
 
 		//FIXME: if pid is -1, print "-xssh: wait childnum background processes" where childnum stores the number of background processes, and wait all the background processes
-		//hint: remember to set the childnum correctly after waiting!
-		}
+		//hint: remember to set the childnum correctly after waiting
 
 	}
 	else printf("-xssh: wait: Invalid pid\n");
