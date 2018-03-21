@@ -56,7 +56,7 @@ int main()
 	}
 	/*run the xssh, read the input instrcution*/
 	int xsshprint = 0;
-	int value = 0; /* TODO added declaration */
+	// int value = 0; /* added declaration for debugging exit() TODO delete before submission */
 	if(isatty(fileno(stdin))) xsshprint = 1;
 	if(xsshprint) printf("xssh>> ");  /* prompt */
 	char buffer[BUFLEN];
@@ -82,11 +82,12 @@ int main()
 		else if(ins == 5)
 			changedir(buffer);
 		else if(ins == 6)
-		{
+			return xsshexit(buffer);
+		/*	{				// debug code for exit()
 			value = xsshexit(buffer);
 			printf("xsshexit returned value: %d \n", value);
-		}
-			/* TODO use this before assignment:  return xsshexit(buffer); */
+		}	*/
+			
 		else if(ins == 7)
 			waitchild(buffer);
 		else if(ins == 8)
@@ -105,7 +106,7 @@ int main()
 			{
 				int err = program(buffer);
 				if(err != 0)break;
-				return 0; //TO DO 
+				// return 0; // TODO: delete this line before submission
 			}
 		}
 		if(xsshprint) printf("xssh>> ");  /* prompt in while loop */
@@ -118,33 +119,25 @@ int main()
 int xsshexit(char buffer[BUFLEN])
 {
 	int i; /* pointer for buffer[5] - buffer[strlen(buffer)] */
-	char argI[strlen(buffer)-5]; /* create an argument argI with length of 5-less than buffer string */
+	char argI[strlen(buffer)-5]; /* create an argument 'argI' with length of 5-less than buffer string */
 	int flag = 0; /* if argI is valid, set flag to 1 */
 	int j = 0; /* j is pointer of argI */
-	int space = 0;
-
-	for(i = 5; (buffer[i]!='\n')&&(buffer[i]!=' '&&(i<BUFLEN))&&(buffer[i]!='\0'); i++)  /* loop pointer i from i+1 to end of $(VARNAME)\0 */
+	int start = 5;
+	
+	while(buffer[start]==' ')start++;
+	for(i = start; (buffer[i]!='\n')&&(buffer[i]!=' '&&(i<BUFLEN))&&(buffer[i]!='\0'); i++)  /* loop pointer i FROM first non-space character TO end of first argument = argI */
 	{
 		argI[j] = buffer[i];
 		j++;
 	}
-	printf("argI is %s \n", argI);
-	// printf("argI int is %s \n", atoi(argI));
+	// printf("argI is %s \n", argI);
+	// printf("argI int is %d \n", atoi(argI));
 	
-	if (strlen(buffer) == 5){
-		return 0;
-	}
+	if (strlen(buffer) == 5)return 0; // if the command is only "exit", return 0
 	
 	for(j = 0; j < strlen(argI); j++)
 	{
-		/*	printf("evaluating: <%c> \n", argI[j]); // handling spaces
-		if (argI[j] == ' ')
-		{
-			space++;
-			printf("space detected");
-			continue;
-		} */
-		if ( (argI[j] < '0') || (argI[j] > '9') )
+		if ( (argI[j] < '0') || (argI[j] > '9') || (argI[j] == ' ') ) // if argI contains space or non-number, set flag = 0 and end for loop
 		{
 			flag = 0;
 			break;	
@@ -176,7 +169,7 @@ void show(char buffer[BUFLEN])
 /*team T*/
 void team(char buffer[BUFLEN])
 {
-	printf("Team members: %s; %s; %s\n", "Yinxia Li", "Liansai Dong","Yuchen Peng");
+	printf("Team members: %s; %s; %s\n", "Yinxia Li", "Liansai Dong", "Yuchen Peng");
 	//FIXED
 }
 
