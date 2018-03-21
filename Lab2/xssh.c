@@ -206,10 +206,16 @@ void changedir(char buffer[BUFLEN])
 /*ctrl+C handler*/
 void ctrlsig(int sig)
 {
+	if (childpid != rootpid)
+	{
+		kill(childpid, SIGKILL);
+		printf("-xssh: Exit pid: %ld \n", childpid);
+		childpid = rootpid;
+		fflush(stdout);
+	}
 	//FIXME: first check if the foreground process (pid stored in childpid) is xssh itself (pid stored in rootpid)
 	//FIXME: if it is not xssh itself, kill the foreground process and print "-xssh: Exit pid childpid", where childpid is the pid of the current process
 	//hint: remember to put the code "fflush(stdout);" after printing the message above for a clear output
-	printf("Replace me for ctrl+C handler\n");
 }
 
 /*wait instruction*/
@@ -289,6 +295,7 @@ int program(char *buffer)
 		else
 		{
 			printf("process running in foreground. \n");
+			childpid = pid;
 			waitpid(pid, NULL, 0);
 		}
 	}
