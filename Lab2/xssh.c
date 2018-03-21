@@ -200,7 +200,7 @@ void changedir(char buffer[BUFLEN])
 /*ctrl+C handler*/
 void ctrlsig(int sig)
 {
-	if (childpid != rootpid) //FIXED: check if the foreground process is xssh itself
+	if (childpid != rootpid && sig == SIGINT)  //FIXED: check if the foreground process is xssh itself
 	{
 		kill(childpid, SIGKILL); //FIXED: if not xssh itself, kill the foreground process and print "-xssh: Exit pid &childpid"
 		printf("-xssh: Exit pid: %d \n", childpid);
