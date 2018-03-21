@@ -216,6 +216,8 @@ void waitchild(char buffer[BUFLEN])
 {
 	int i;
 	int start = 5;
+	int w_status;
+	pid_t wpid;
 
 	/*store the childpid in pid*/
 	char number[BUFLEN] = {'\0'}; 
@@ -231,22 +233,19 @@ void waitchild(char buffer[BUFLEN])
 	/*simple check to see if the input is valid or not*/
 	if((*number != '\0')&&(*endptr == '\0'))
 	{
-		if (pid != -1 && pid > 0) {
- 			printf("%s%2d\n\n", "-xssh: Have finished waiting process pid: ", pid); 
-		} else if (pid == -1){
-			printf("-xssh: wait childnum background processes: %d\n\n", childnum);
-		} else {
-			printf("-xssh: Unsuccessfully wait the background process pid.\n\n");
+		if (pid != -1 && pid > 0) { 	//FIXED: if pid is not -1, try to wait the background process pid
+			wpid = waitpid(pid, &w_status, 0);
+			if(WIFEXITED(w_status) && wpid != -1) //FIXED: if successful, print "-xssh: Have finished waiting process $pid"
+			{
+ 				printf("-xssh: Have finished waiting process: %d. \n", wpid); 
+			} else { //FIXED: if not successful, print "-xssh: Unsuccessfully wait the background process $pid"
+				printf("-xssh: Unsuccessfully wait the background process: %d.\n", pid);
+			}
+		} else if (pid == -1){ 	//FIXME: if pid is -1, print "-xssh: wait %childnum background processes", and wait all the background processes
+			wpid = waitpid(-1, &w_status, 0);
+			printf("-xssh: wait %d background processes: \n\n", childnum);
 		}
-		
-		//FIXME: if pid is not -1, try to wait the background process pid
-		//FIXME: if successful, print "-xssh: Have finished waiting process pid", where pid is the pid of the background process
-		//FIXME: if not successful, print "-xssh: Unsuccessfully wait the background process pid", where pid is the pid of the background process
-
-
-		//FIXME: if pid is -1, print "-xssh: wait childnum background processes" where childnum stores the number of background processes, and wait all the background processes
-		//hint: remember to set the childnum correctly after waiting
-
+		//hint: remember to set the childnum correctly after waiting (??)
 	}
 	else printf("-xssh: wait: Invalid pid\n");
 }
