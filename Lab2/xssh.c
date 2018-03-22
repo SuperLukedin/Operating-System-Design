@@ -191,6 +191,7 @@ void changedir(char buffer[BUFLEN])
 	struct stat sb;
 	if (stat(rootdir, &sb) == 0 && S_ISDIR(sb.st_mode)) { //FIXED: changes the current working dir. of xssh to the directory specified in rootdir and print "-xssh: change to dir 'rootdir'\n"
 		printf("-xssh: change to dir %s\n", rootdir);
+		chdir(rootdir);
 	} else { 	//FIXED: if rootdir not exist, print error message "-xssh: chdir: Directory 'D' does not exist"
 		printf("-xssh: chdir: Directory %s does not exist\n", rootdir);
 		strcpy(rootdir, temp);
