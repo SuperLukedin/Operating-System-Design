@@ -28,7 +28,7 @@ char rootdir[BUFLEN] = "\0";
 /*functions for parsing the commands*/
 int deinstr(char buffer[BUFLEN]);
 void substitute(char *buffer);
-void parser(char* argument, char** argv); // TODO: added helper function
+void parser(char* argument, char** argv); // ADD: helper function: parse the buffer into list of arguments and sent to program()
 
 /*functions to be completed*/
 int xsshexit(char buffer[BUFLEN]);
@@ -57,7 +57,6 @@ int main()
 	}
 	/*run the xssh, read the input instrcution*/
 	int xsshprint = 0;
-	// int value = 0; /* added declaration for debugging exit() TODO delete before submission */
 	if(isatty(fileno(stdin))) xsshprint = 1;
 	if(xsshprint) printf("xssh>> ");  /* prompt */
 	char buffer[BUFLEN];
@@ -85,10 +84,10 @@ int main()
 		else if(ins == 6)
 			return xsshexit(buffer);
 		/*	{				// debug code for exit()
+			int value = 0;
 			value = xsshexit(buffer);
 			printf("xsshexit returned value: %d \n", value);
 		}	*/
-			
 		else if(ins == 7)
 			waitchild(buffer);
 		else if(ins == 8)
@@ -107,7 +106,6 @@ int main()
 			{
 				int err = program(buffer);
 				if(err != 0)break;
-				// return 0; // TODO: delete this line before submission
 			}
 		}
 		if(xsshprint) printf("xssh>> ");  /* prompt in while loop */
@@ -163,7 +161,6 @@ void show(char buffer[BUFLEN])
 	for (i = 5; i < len; i++) {
 		printf("%c", buffer[i]);
 	}
-	printf("\n");
 	//FIXED
 }
 
@@ -192,30 +189,25 @@ void changedir(char buffer[BUFLEN])
         rootdir[i-start] = '\0';
 
 	struct stat sb;
-	if (stat(rootdir, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+	if (stat(rootdir, &sb) == 0 && S_ISDIR(sb.st_mode)) { //FIXED: changes the current working dir. of xssh to the directory specified in rootdir and print "-xssh: change to dir 'rootdir'\n"
 		printf("-xssh: change to dir %s\n", rootdir);
-	} else {
+		chdir(rootdir);
+	} else { 	//FIXED: if rootdir not exist, print error message "-xssh: chdir: Directory 'D' does not exist"
 		printf("-xssh: chdir: Directory %s does not exist\n", rootdir);
 		strcpy(rootdir, temp);
 	}
-
-	//FIXME: changes the current working directory of xssh to the directory specified in rootdir and print "-xssh: change to dir 'rootdir'\n"
-	//FIXME: if rootdir does not exist, print an error message "-xssh: chdir: Directory 'D' does not exist"
 }
 
 /*ctrl+C handler*/
 void ctrlsig(int sig)
 {
-	if (childpid != rootpid && sig == SIGINT)
+	if (childpid != rootpid && sig == SIGINT)  //FIXED: check if the foreground process is xssh itself
 	{
-		kill(childpid, SIGKILL);
-		printf("-xssh: Exit pid: %ld \n", childpid);
+		kill(childpid, SIGKILL); //FIXED: if not xssh itself, kill the foreground process and print "-xssh: Exit pid &childpid"
+		printf("-xssh: Exit pid: %d \n", childpid);
 		childpid = rootpid;
-		fflush(stdout);
+		fflush(stdout); // ??
 	}
-	//FIXME: first check if the foreground process (pid stored in childpid) is xssh itself (pid stored in rootpid)
-	//FIXME: if it is not xssh itself, kill the foreground process and print "-xssh: Exit pid childpid", where childpid is the pid of the current process
-	//hint: remember to put the code "fflush(stdout);" after printing the message above for a clear output
 }
 
 /*wait instruction*/
@@ -249,8 +241,8 @@ void waitchild(char buffer[BUFLEN])
 				printf("-xssh: Unsuccessfully wait the background process: %d.\n", pid);
 			}
 		} else if (pid == -1){ 	//FIXME: if pid is -1, print "-xssh: wait %childnum background processes", and wait all the background processes
-			wpid = waitpid(-1, &w_status, 0);
 			printf("-xssh: wait %d background processes: \n\n", childnum);
+			wpid = waitpid(-1, &w_status, 0);
 		}
 		//hint: remember to set the childnum correctly after waiting (??)
 		// Q : when the waitpid() returns, is the child process continued or terminated?
@@ -271,46 +263,45 @@ int program(char *buffer)
 	char **argv;
 	argv = (char**)malloc(sizeof(char*)*BUFLEN);	
 	parser(buffer, argv);
-	
-	printf("parsed argv (command): %s \n", *argv);	
+	printf("parsed argv (command): %s \n", *argv);	// TODO remove before submission
 
 	pid_t pid;
 	pid = fork(); // FIXED: create a new process
+	if (backflag)
+		childnum++; // support command "wait -1"
 	if (pid < 0) // FIXED: check if the process creation is successful
-		printf("xssh: failed to fork-create process.");
+	{
+		printf("xssh: failed to fork/create process.");
+		childnum--;
+	}
 	else if (pid == 0) { // FIXED: child process, execute the external command
 		if (execvp(*argv, argv) == -1) // FIXED: check if the external command is executed successfully
 		{
+			childnum--; // ?
 			printf("xssh: Unable to execute the instruction: %s. \n", *argv);
 			return -1;
 		}
+		childnum--;
 	//hint: the external command is stored in buffer, but before execute it you may need to do some basic validation check or minor changes, depending on how you execute
 	} else { // parent process, pid > 0
 		if (backflag == 1) // FIXED: act differently based on backflag
-		{
+		{ // background
 			printf("process running in background. \n");
-			childnum++;
-			// continue; // ???
+			childpid = pid;
+			// while (waitpid(-1, NULL, 0) > 0)
+			sprintf(varvalue[2], "%d\0", pid); // support command "show $!"
 		}
 		else
-		{
+		{ // foreground
 			printf("process running in foreground. \n");
-			childpid = pid;
 			waitpid(pid, NULL, 0);
 		}
 	}
-
 	/* TODO for extra credit, implement stdin/stdout redirection in here*/
-
-	//hint: the codes below are necessary to support command "wait -1" */
-		childnum++;
-			childnum--; //this may or may not be needed, depending on where you put the previous line
-	//hint: the code below is necessary to support command "show $!", but you need to put it in the correct place
-			sprintf(varvalue[2], "%d\0", pid);
-			return 0;
+	return 0;
 }
 
-/*for extra credit, implement the function below*/
+/* TODO for extra credit, implement the function below*/
 /*execute the pipe programs*/
 int pipeprog(char buffer[BUFLEN])
 {
@@ -446,30 +437,14 @@ int deinstr(char buffer[BUFLEN])
 }
 
 void parser(char* argument, char** argv)
-{
-	// remove the '&' before parse argument	
-	printf("argument (buffer) is %s", argument);
-	/*
-	int i,k;
-	char newbuf[BUFLEN];
-	for(i = 0; argument[i] != '\0'; i++)
-	{
-		if (argument[i] == '&')continue;
-		newbuf[k] = argument[i];
-		k++;
-	}
-	newbuf[k] = '\0';
-	*/
-
+{	
 	int j = 0;
-	
-	// tokenize the arguments
 	char* token;
-	token = strtok(argument, " ,.\n");
+	token = strtok(argument, " ,.\n"); 	// tokenize the arguments
 	while (token != NULL){
 		argv[j] = token;
-		token = strtok(NULL, " ,&\n");
-		printf("argv[j] is %s. \n", argv[j]);
+		token = strtok(NULL, " ,&\n");	// '&' will be removed
+		printf("argv[j] is %s. \n", argv[j]); // TODO remove before submission
 		j++;
 	}
 argv[j] = NULL;
