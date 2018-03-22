@@ -24,6 +24,9 @@ pid_t childpid = 0;
 pid_t rootpid = 0;
 /*current dir*/
 char rootdir[BUFLEN] = "\0";
+/*redirection*/
+int input_redir = 0;
+int output_redir = 0;
 
 /*functions for parsing the commands*/
 int deinstr(char buffer[BUFLEN]);
@@ -108,6 +111,9 @@ int main()
 				if(err != 0)break;
 			}
 		}
+		input_redir = 0;
+		output_redir = 0;
+		//close(stdout);
 		if(xsshprint) printf("xssh>> ");  /* prompt in while loop */
 		memset(buffer, 0, BUFLEN); /* clean and reset buffer = 000000... */
 	}
@@ -190,7 +196,7 @@ void changedir(char buffer[BUFLEN])
 
 	struct stat sb;
 	if (stat(rootdir, &sb) == 0 && S_ISDIR(sb.st_mode)) { //FIXED: changes the current working dir. of xssh to the directory specified in rootdir and print "-xssh: change to dir 'rootdir'\n"
-		printf("-xssh: change to dir %s\n", rootdir);
+		printf("-xssh: change to dir %s \n\n", rootdir);
 		chdir(rootdir);
 	} else { 	//FIXED: if rootdir not exist, print error message "-xssh: chdir: Directory 'D' does not exist"
 		printf("-xssh: chdir: Directory %s does not exist\n", rootdir);
@@ -203,10 +209,11 @@ void ctrlsig(int sig)
 {
 	if (childpid != rootpid && sig == SIGINT)  //FIXED: check if the foreground process is xssh itself
 	{
-		kill(childpid, SIGKILL); //FIXED: if not xssh itself, kill the foreground process and print "-xssh: Exit pid &childpid"
+		
 		printf("-xssh: Exit pid: %d \n", childpid);
+		fflush(stdout);
+		kill(childpid, SIGKILL); //FIXED: if not xssh itself, kill the foreground process and print "-xssh: Exit pid &childpid"
 		childpid = rootpid;
-		fflush(stdout); // ??
 	}
 }
 
@@ -265,6 +272,8 @@ int program(char *buffer)
 	parser(buffer, argv);
 	printf("parsed argv (command): %s \n", *argv);	// TODO remove before submission
 
+	
+
 	pid_t pid;
 	pid = fork(); // FIXED: create a new process
 	if (backflag)
@@ -275,20 +284,73 @@ int program(char *buffer)
 		childnum--;
 	}
 	else if (pid == 0) { // FIXED: child process, execute the external command
+		
+		// FIXED: stdin & stdout redirection
+		// detect redirection symbol '>' annd '<'
+		int fd0, fd1, i;
+		char output0[BUFLEN];	
+		char input0[BUFLEN]; 
+
+		for (i=1; argv[i] != '\0'; i++)
+		{
+			if(strcmp(argv[i], "<") == 0)
+			{
+				strcpy(input0, argv[i+1]);
+				input_redir = 1;
+			}
+			if(strcmp(argv[i], ">") == 0)
+			{
+				strcpy(output0, argv[i+1]);
+				argv[i] = NULL;
+				output_redir = 1;
+			}
+			if (input_redir == 1 && output_redir != 1)
+				argv[i] = NULL;
+		}
+
+		printf("argument list after parsing for '<' AND '>' : ");
+		for (i=0; argv[i]!='\0'; i++)
+		{
+			printf("[ %s ] \t", argv[i]);
+		}
+
+		if(input_redir)
+		{
+			printf("input0 is %s \n", input0);
+			if((fd0 = open(input0, O_RDONLY, 0)) < 0) 
+			{
+				perror("cannot open input file");
+				return -1;
+			}
+			dup2(fd0, 0);
+			close(fd0);
+		}
+
+		if(output_redir)
+		{
+			printf("output0 is %s \n", output0);
+			if((fd1 = creat(output0, 0644)) <0 ) // user rw-; group r--; other r--
+			{
+				perror("cannot open output file");
+				return -1;
+			}
+			dup2(fd1, 1);
+			close(fd0);
+		}
 		if (execvp(*argv, argv) == -1) // FIXED: check if the external command is executed successfully
 		{
-			childnum--; // ?
+			childnum--;
 			printf("xssh: Unable to execute the instruction: %s. \n", *argv);
 			return -1;
 		}
-		childnum--;
+		input_redir = 0;
+		output_redir = 0;
 	//hint: the external command is stored in buffer, but before execute it you may need to do some basic validation check or minor changes, depending on how you execute
 	} else { // parent process, pid > 0
-		if (backflag == 1) // FIXED: act differently based on backflag
+		childpid = pid;
+		if (backflag) // FIXED: act differently based on backflag
 		{ // background
 			printf("process running in background. \n");
-			childpid = pid;
-			// while (waitpid(-1, NULL, 0) > 0)
 			sprintf(varvalue[2], "%d\0", pid); // support command "show $!"
 		}
 		else
