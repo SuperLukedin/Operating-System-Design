@@ -173,7 +173,8 @@ void show(char buffer[BUFLEN])
 /*team T*/
 void team(char buffer[BUFLEN])
 {
-	printf("Team members: %s; %s; %s\n", "Yinxia Li", "Liansai Dong", "Yuchen Peng");
+	printf("Team members: %s; %s; %s ", "Yinxia Li", "Liansai Dong", "Yuchen Peng");
+	printf(" - finished optional (b). \n");
 	//FIXED
 }
 
@@ -247,7 +248,7 @@ void waitchild(char buffer[BUFLEN])
 			} else { //FIXED: if not successful, print "-xssh: Unsuccessfully wait the background process $pid"
 				printf("-xssh: Unsuccessfully wait the background process: %d.\n", pid);
 			}
-		} else if (pid == -1){ 	//FIXME: if pid is -1, print "-xssh: wait %childnum background processes", and wait all the background processes
+		} else if (pid == -1){ 	//FIXED: if pid is -1, print "-xssh: wait %childnum background processes", and wait all the background processes
 			printf("-xssh: wait %d background processes: \n\n", childnum);
 			wpid = waitpid(-1, &w_status, 0);
 		}
@@ -270,9 +271,7 @@ int program(char *buffer)
 	char **argv;
 	argv = (char**)malloc(sizeof(char*)*BUFLEN);	
 	parser(buffer, argv);
-	printf("parsed argv (command): %s \n", *argv);	// TODO remove before submission
-
-	
+	// printf("parsed argv (command): %s \n", *argv);
 
 	pid_t pid;
 	pid = fork(); // FIXED: create a new process
@@ -308,15 +307,15 @@ int program(char *buffer)
 				argv[i] = NULL;
 		}
 
-		printf("argument list after parsing for '<' AND '>' : ");
+		/* printf("argument list after parsing for '<' AND '>' : ");
 		for (i=0; argv[i]!='\0'; i++)
 		{
 			printf("[ %s ] \t", argv[i]);
-		}
+		} */
 
 		if(input_redir)
 		{
-			printf("input0 is %s \n", input0);
+			// printf("input0 is %s \n", input0);
 			if((fd0 = open(input0, O_RDONLY, 0)) < 0) 
 			{
 				perror("cannot open input file");
@@ -328,7 +327,7 @@ int program(char *buffer)
 
 		if(output_redir)
 		{
-			printf("output0 is %s \n", output0);
+			// printf("output0 is %s \n", output0);
 			if((fd1 = creat(output0, 0644)) <0 ) // user rw-; group r--; other r--
 			{
 				perror("cannot open output file");
@@ -350,24 +349,105 @@ int program(char *buffer)
 		childpid = pid;
 		if (backflag) // FIXED: act differently based on backflag
 		{ // background
-			printf("process running in background. \n");
+			// printf("process running in background. \n");
 			sprintf(varvalue[2], "%d\0", pid); // support command "show $!"
 		}
 		else
 		{ // foreground
-			printf("process running in foreground. \n");
+			// printf("process running in foreground. \n");
 			waitpid(pid, NULL, 0);
 		}
 	}
-	/* TODO for extra credit, implement stdin/stdout redirection in here*/
 	return 0;
 }
 
-/* TODO for extra credit, implement the function below*/
+ 
 /*execute the pipe programs*/
 int pipeprog(char buffer[BUFLEN])
 {
-	printf("-xssh: For extra credit: currently not supported.\n");
+	int pipe_count = 0;
+
+	int p;
+	for(p=0; buffer[p] != '\0'; p++)
+	{
+		if (buffer[p] == '|')pipe_count++;
+	}
+	printf("read %d pipes. \n", pipe_count);
+
+	int status;
+	int i = 0;
+	pid_t pid;
+	
+	int pipefds[2*pipe_count];
+	for(i=0; i < (pipe_count); i++)
+	{
+		if(pipe(pipefds + i * 2) < 0)
+		{
+			perror("cannot create pipe");
+			return -1;
+		}
+	}
+	
+	// TODO
+	int cmd_index = 0;
+	char *cmd = strtok(buffer, "|\n");
+	while(cmd!=NULL)
+	{
+		printf("Start of loop, command: %s \n", cmd); // strtok()
+
+		pid = fork();
+		if(pid == 0) // child process
+		{
+			if (cmd_index != pipe_count)  // if NOT last command	
+			{
+				if(dup2(pipefds[cmd_index-1], 1)<0)
+				{
+					perror("dup2");
+					return -1;
+				}
+			}
+
+			if(cmd_index != 0) // if NOT first command 
+			{
+				if(dup2(pipefds[cmd_index-2], 0)<0)
+				{
+					perror("dup2");
+					return -1;
+				}
+			}
+
+			for(i=0; i<2*pipe_count; i++)
+				close(pipefds[i]);
+			
+			// parse the command from the buffer
+			char **argv;
+			argv = (char**)malloc(sizeof(char*)*BUFLEN);	
+			parser(buffer, argv);
+			printf("parsed argv (command): %s \n", *argv);
+
+			if( execvp(*argv, argv) <0 )
+			{
+				printf("-xssh: fail to execute external command");
+				return -1;
+			}
+
+		} else if (pid < 0) { // fail to fork
+			perror("error");
+			return -1;
+		} 
+		// command++;
+		cmd = strtok(NULL, "|\n"); // strtok()
+		cmd_index+=2;
+		printf("End of loop: command now is %s \n", cmd);
+	} // while(cmd!=NULL);
+
+	// parent close the pipes
+	for(i=0; i<2*pipe_count; i++)
+		close(pipefds[i]);
+
+	for(i=0; i<pipe_count; i++)
+		wait(&status);
+
 	return 0;
 }
 
@@ -506,7 +586,7 @@ void parser(char* argument, char** argv)
 	while (token != NULL){
 		argv[j] = token;
 		token = strtok(NULL, " ,&\n");	// '&' will be removed
-		printf("argv[j] is %s. \n", argv[j]); // TODO remove before submission
+		// printf("argv[j] is %s. \n", argv[j]);
 		j++;
 	}
 argv[j] = NULL;
